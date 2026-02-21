@@ -98,6 +98,7 @@
                 <td>
                     ${actionButtons}
                     <button class="btn btn-sm btn-outline-primary ms-1" onclick="view(${r.id})">{{ "View"|t:current_lang }}</button>
+                    <button class="btn btn-sm btn-outline-success ms-1" onclick="event.stopPropagation(); typingUsageReport(${r.id})">{{ "Typing Usage Report"|t:current_lang }}</button>
                 </td>
             `;
 
@@ -168,6 +169,10 @@
                 console.error(err);
                 alert("{{ 'Failed to send request'|t:current_lang }}");
             });
+    }
+
+    function typingUsageReport(id) {
+        window.location.href = `/qpr/reports/${id}/typing-usage-report/`;
     }
 
     window.addEventListener('DOMContentLoaded', loadList);

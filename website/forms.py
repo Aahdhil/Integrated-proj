@@ -146,3 +146,30 @@ class CustomLoginForm(AuthenticationForm):
             # Apply translated labels as placeholders
             field.widget.attrs['placeholder'] = field.label
 
+
+class TypingUsageReportForm(forms.Form):
+    """Form for entering typing usage report data"""
+    total_words = forms.IntegerField(
+        label="Total Number of Words in All Notes",
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter total words', 'min': '0'}),
+        required=True,
+        min_value=0
+    )
+    hindi_words = forms.IntegerField(
+        label="Total Number of Hindi Words in All Notes",
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter hindi words', 'min': '0'}),
+        required=True,
+        min_value=0
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        total_words = cleaned_data.get('total_words')
+        hindi_words = cleaned_data.get('hindi_words')
+
+        if total_words is not None and hindi_words is not None:
+            if hindi_words > total_words:
+                raise forms.ValidationError(
+                    "Hindi words cannot be greater than total words."
+                )
+        return cleaned_data

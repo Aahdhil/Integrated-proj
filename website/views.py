@@ -30,9 +30,10 @@ from .models import (
     Section5EnglishRepliedHindiData, Section6IssuedLettersData,
     Section7NotingsData, Section8WorkshopsData,
     Section9ImplementationCommitteeData, Section10HindiAdvisoryData,
-    Section11SpecificAchievementsData, UserProfile, ManagerRequest, EditRequest
+    Section11SpecificAchievementsData, UserProfile, ManagerRequest, EditRequest,
+    TypingUsageReport
 )
-from .forms import CustomLoginForm, CustomUserCreationForm
+from .forms import CustomLoginForm, CustomUserCreationForm, TypingUsageReportForm
 from .employeeform import EmployeeForm
 from .serializers import EmployeeSerializer
 from .utils import send_system_email
@@ -1227,6 +1228,96 @@ def report_detail(request, record_id):
     return render(request, 'qpr/report_detail.html', {'record_id': record_id})
 
 @login_required
+def typing_usage_report_form(request, record_id):
+    """Display form for typing usage report"""
+    qpr_record = get_object_or_404(QPRRecord, id=record_id, user=request.user)
+    
+    if request.method == 'POST':
+        form = TypingUsageReportForm(request.POST)
+        if form.is_valid():
+            total_words = form.cleaned_data['total_words']
+            hindi_words = form.cleaned_data['hindi_words']
+            
+            # Create or update the typing usage report
+            report, created = TypingUsageReport.objects.update_or_create(
+                qpr_record=qpr_record,
+                defaults={'total_words': total_words, 'hindi_words': hindi_words}
+            )
+            
+            return redirect('typing_usage_report_view', record_id=record_id)
+    else:
+        # Pre-fill form if report exists
+        try:
+            report = TypingUsageReport.objects.get(qpr_record=qpr_record)
+            form = TypingUsageReportForm(initial={
+                'total_words': report.total_words,
+                'hindi_words': report.hindi_words
+            })
+        except TypingUsageReport.DoesNotExist:
+            form = TypingUsageReportForm()
+    
+    context = {
+        'form': form,
+        'record_id': record_id,
+        'office_name': qpr_record.officeName
+    }
+    return render(request, 'qpr/typing_usage_report.html', context)
+
+@login_required
+def typing_usage_report_view(request, record_id):
+    """Display typing usage report with details"""
+    qpr_record = get_object_or_404(QPRRecord, id=record_id, user=request.user)
+    
+    # Get employee profile
+    user_profile = request.user.profile
+    employee_name = user_profile.name or request.user.username
+    designation = user_profile.office_name  # Or you can get it from Employee model
+    
+    # Try to get designation from Employee model if available
+    try:
+        employee = Employee.objects.get(empcode=user_profile.employee_code)
+        designation = employee.designation or designation
+    except Employee.DoesNotExist:
+        pass
+    
+    # Get section7 data (notings data)
+    try:
+        section7 = qpr_record.section7
+        total_notes = section7.total_pages or 0
+        hindi_notes = section7.hindi_pages or 0
+    except:
+        total_notes = 0
+        hindi_notes = 0
+    
+    # Get typing usage report data
+    try:
+        typing_report = TypingUsageReport.objects.get(qpr_record=qpr_record)
+        total_words = typing_report.total_words or 0
+        hindi_words = typing_report.hindi_words or 0
+    except TypingUsageReport.DoesNotExist:
+        total_words = 0
+        hindi_words = 0
+    
+    # Calculate percentages
+    notes_hindi_percentage = (hindi_notes / total_notes * 100) if total_notes > 0 else 0
+    words_hindi_percentage = (hindi_words / total_words * 100) if total_words > 0 else 0
+    
+    context = {
+        'record_id': record_id,
+        'office_name': qpr_record.officeName,
+        'employee_name': employee_name,
+        'designation': designation,
+        'total_notes': total_notes,
+        'hindi_notes': hindi_notes,
+        'notes_hindi_percentage': round(notes_hindi_percentage, 2),
+        'total_words': total_words,
+        'hindi_words': hindi_words,
+        'words_hindi_percentage': round(words_hindi_percentage, 2),
+    }
+    
+    return render(request, 'qpr/typing_usage_report_view.html', context)
+
+@login_required
 @login_required
 def hod_detail_list(request):
     if request.user.profile.role != 'hod': return redirect('/')
@@ -1251,31 +1342,6 @@ def hod_detail_list(request):
         })
     context = {'users_data': users_data, 'hod_name': hod_name}
     response = render(request, 'qpr/hod_detail_list.html', context)
-    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response['Pragma'] = 'no-cache'
-    response['Expires'] = '0'
-    return response
-
-@login_required
-def hod_manager_requests(request):
-    if request.user.profile.role != 'hod': return redirect('/')
-    if request.method == 'POST':
-        user_id = request.POST.get('user_id')
-        request_type = request.POST.get('request_type')
-        reason = request.POST.get('reason', '')
-        try:
-            user = User.objects.get(id=user_id)
-            if user.profile.hod_name != request.user.profile.hod_name:
-                messages.error(request, 'User is not under your HOD group')
-            else:
-                ManagerRequest.objects.create(hod=request.user, user=user, request_type=request_type, reason=reason)
-                messages.success(request, 'Request sent successfully!')
-        except User.DoesNotExist:
-            messages.error(request, 'User not found')
-    hod_name = request.user.profile.hod_name
-    users_under_hod = UserProfile.objects.filter(role='user', hod_name=hod_name)
-    users_data = [{'user': u.user, 'name': u.name, 'employee_code': u.employee_code} for u in users_under_hod]
-    response = render(request, 'qpr/hod_manager_requests.html', {'users_data': users_data})
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response['Pragma'] = 'no-cache'
     response['Expires'] = '0'
@@ -1657,6 +1723,66 @@ def reject_edit_request(request, request_id):
     
     context = {'edit_request': edit_request, 'current_lang': lang}
     return render(request, 'qpr/reject_edit_request.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def typing_data_report(request):
+    """Admin view all employees' typing usage data"""
+    lang = request.session.get('lang', 'en')
+    
+    # Get all typing usage reports with related data
+    typing_reports = TypingUsageReport.objects.select_related(
+        'qpr_record__user__profile',
+        'qpr_record__section7'
+    ).all()
+    
+    data = []
+    for report in typing_reports:
+        qpr_record = report.qpr_record
+        user_profile = qpr_record.user.profile
+        
+        # Get employee name
+        employee_name = user_profile.name or qpr_record.user.username
+        
+        # Get designation
+        designation = user_profile.office_name or 'N/A'
+        try:
+            employee = Employee.objects.get(empcode=user_profile.employee_code)
+            designation = employee.designation or designation
+        except Employee.DoesNotExist:
+            pass
+        
+        # Get section7 data
+        try:
+            section7 = qpr_record.section7
+            total_notes = section7.total_pages or 0
+            hindi_notes = section7.hindi_pages or 0
+        except:
+            total_notes = 0
+            hindi_notes = 0
+        
+        # Calculate percentages
+        notes_hindi_percentage = (hindi_notes / total_notes * 100) if total_notes > 0 else 0
+        words_hindi_percentage = (report.hindi_words / report.total_words * 100) if report.total_words and report.total_words > 0 else 0
+        
+        data.append({
+            'serial_no': len(data) + 1,
+            'employee_name': employee_name,
+            'designation': designation,
+            'total_notes': total_notes,
+            'hindi_notes': hindi_notes,
+            'notes_hindi_percentage': round(notes_hindi_percentage, 2),
+            'total_words': report.total_words or 0,
+            'hindi_words': report.hindi_words or 0,
+            'words_hindi_percentage': round(words_hindi_percentage, 2),
+        })
+    
+    context = {
+        'typing_data': data,
+        'current_lang': lang,
+    }
+    return render(request, 'qpr/typing_data_report.html', context)
 
 
 # ==================== HOD MANAGEMENT (ADMIN ONLY) ====================

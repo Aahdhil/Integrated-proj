@@ -397,3 +397,18 @@ class Section11SpecificAchievementsData(models.Model):
     hindi_medium_works = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class TypingUsageReport(models.Model):
+    """Store typing usage report data for users"""
+    qpr_record = models.OneToOneField(QPRRecord, on_delete=models.CASCADE, related_name='typing_usage_report')
+    total_words = models.IntegerField(null=True, blank=True)
+    hindi_words = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Typing Usage Report - {self.qpr_record.officeName}"
+
+    class Meta:
+        ordering = ['-created_at']

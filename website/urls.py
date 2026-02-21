@@ -46,11 +46,12 @@ urlpatterns = [
     path('qpr/form/', views.qpr_form, name='qpr_form'),
     path('qpr/reports/', views.report_list, name='qpr_report_list'),
     path('qpr/reports/<int:record_id>/', views.report_detail, name='qpr_report_detail'),
+    path('qpr/reports/<int:record_id>/typing-usage-report/', views.typing_usage_report_form, name='typing_usage_report_form'),
+    path('qpr/reports/<int:record_id>/typing-usage-report/view/', views.typing_usage_report_view, name='typing_usage_report_view'),
     path('qpr/reports/<int:record_id>/request-edit/', views.request_qpr_edit, name='request_qpr_edit'),
 
     # --- HOD WORKFLOW ---
     path('qpr/hod/details/', views.hod_detail_list, name='qpr_hod_detail_list'),
-    path('qpr/hod/requests/', views.hod_manager_requests, name='qpr_hod_requests'),
 
     path('qpr/admin/employees/', views.admin_employee_list, name='qpr_admin_employee_list'),
     path('qpr/admin/create-hod/', views.admin_create_hod, name='qpr_admin_create_hod'),
@@ -58,6 +59,7 @@ urlpatterns = [
     path('qpr/admin/edit-requests/', views.admin_edit_requests, name='admin_edit_requests'),
     path('qpr/admin/approve-edit/<int:request_id>/', views.approve_edit_request, name='approve_edit_request'),
     path('qpr/admin/reject-edit/<int:request_id>/', views.reject_edit_request, name='reject_edit_request'),
+    path('qpr/admin/typing-data-report/', views.typing_data_report, name='typing_data_report'),
     path('update-designation/<int:user_id>/', views.update_designation, name='update_designation'),
     path('action/<int:user_id>/<str:action>/', views.manage_user_action, name='manage_user_action'),
 

@@ -166,6 +166,9 @@
                     <a href="{% url 'admin_edit_requests' %}" class="btn btn-warning text-white">
                         <i class="fas fa-file-alt"></i> {{ "Edit Requests"|t:current_lang }}
                     </a>
+                    <a href="{% url 'typing_data_report' %}" class="btn btn-primary text-white">
+                        <i class="fas fa-keyboard"></i> {{ "Typing Data Report"|t:current_lang }}
+                    </a>
                 </div>
             </div>
         </div>
@@ -454,7 +457,6 @@
             <div class="card-body">
                 <h5 class="fw-bold text-primary mb-3">{{ "Quick Actions"|t:current_lang }}</h5>
                 <a href="{% url 'qpr_hod_detail_list' %}" class="btn btn-primary me-2 mb-2"><i class="fas fa-table"></i> {{ "View Detail List"|t:current_lang }}</a>
-                <a href="{% url 'qpr_hod_requests' %}" class="btn btn-info me-2 mb-2 text-white"><i class="fas fa-envelope"></i> {{ "Manager Requests"|t:current_lang }}</a>
                 <a href="{% url 'change_password' %}" class="btn btn-warning me-2 mb-2"><i class="fas fa-lock"></i> {{ "Change Password"|t:current_lang }}</a>
             </div>
         </div>
@@ -463,7 +465,6 @@
         <div class="menu-items" id="menuItems">
             <a href="{% url 'qpr_hod_dashboard' %}" class="menu-item"><i class="fas fa-chart-pie"></i> {{ "Dashboard"|t:current_lang }}</a>
             <a href="{% url 'qpr_hod_detail_list' %}" class="menu-item"><i class="fas fa-list"></i> {{ "Detail List"|t:current_lang }}</a>
-            <a href="{% url 'qpr_hod_requests' %}" class="menu-item"><i class="fas fa-envelope"></i> {{ "Requests"|t:current_lang }}</a>
             <a href="{% url 'logout' %}" class="menu-item text-danger"><i class="fas fa-sign-out-alt"></i> {{ "Logout"|t:current_lang }}</a>
         </div>
         <script> document.getElementById('menuToggle').addEventListener('click', () => { document.getElementById('menuItems').classList.toggle('active'); }); </script>
