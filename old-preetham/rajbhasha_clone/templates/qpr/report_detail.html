@@ -1,0 +1,107 @@
+{% extends "master.html" %}
+{% load static %}
+{% load translate_tags %}
+
+{% block title %}{{ "Report Detail"|t:current_lang }}{% endblock %}
+
+{% block extra_css %}
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>{{ "Report Detail"|t:current_lang }}</h4>
+        <div>
+            <a href="{% url 'qpr_report_list' %}" class="btn btn-outline-secondary">
+                ← {{ "Back to Report List"|t:current_lang }}
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body" id="reportContainer">
+            <div class="text-center text-muted">
+                {{ "Loading report..."|t:current_lang }}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const pathParts = window.location.pathname.split('/');
+    const recordId = pathParts[pathParts.length - 2];
+
+    async function loadReport() {
+        try {
+            const res = await fetch(`/qpr/api/records/${recordId}/`);
+            
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            
+            const data = await res.json();
+            const container = document.getElementById("reportContainer");
+
+            if (!data || data.error) {
+                container.innerHTML = `<div class='text-danger text-center'>${data.error || "{{ 'Failed to load report'|t:current_lang }}"}</div>`;
+                return;
+            }
+
+            container.innerHTML = `
+            <h5 class="mb-3">{{ "General Information"|t:current_lang }}</h5>
+            <p><strong>{{ "Office Name"|t:current_lang }}:</strong> ${data.officeName || '-'}</p>
+            <p><strong>{{ "Office Code"|t:current_lang }}:</strong> ${data.officeCode || '-'}</p>
+            <p><strong>{{ "Region"|t:current_lang }}:</strong> ${data.region || '-'}</p>
+            <p><strong>{{ "Quarter"|t:current_lang }}:</strong> ${data.quarter || '-'}</p>
+            <p><strong>{{ "Status"|t:current_lang }}:</strong> ${data.status || '-'}</p>
+
+            <hr>
+
+            <h5 class="mt-4">{{ "Section 1"|t:current_lang }}</h5>
+            <p>{{ "Total Files"|t:current_lang }}: ${data.s1_total || 0}</p>
+            <p>{{ "Files in Hindi"|t:current_lang }}: ${data.s1_hindi || 0}</p>
+
+            <h5 class="mt-4">{{ "Section 2"|t:current_lang }}</h5>
+            <p>{{ "Meetings"|t:current_lang }}: ${data.s2_meetings || 0}</p>
+            <p>{{ "Minutes in Hindi"|t:current_lang }}: ${data.s2_minutes || 0}</p>
+
+            <h5 class="mt-4">{{ "Section 3"|t:current_lang }}</h5>
+            <p>{{ "Total Documents"|t:current_lang }}: ${data.s3_total || 0}</p>
+            <p>{{ "Bilingual"|t:current_lang }}: ${data.s3_bilingual || 0}</p>
+
+            <h5 class="mt-4">{{ "Section 4"|t:current_lang }}</h5>
+            <p>{{ "Letters Received"|t:current_lang }}: ${data.s4_total || 0}</p>
+
+            <h5 class="mt-4">{{ "Section 5"|t:current_lang }}</h5>
+            <p>{{ "Letters (Region A)"|t:current_lang }}: ${data.s5_total || 0}</p>
+
+            <h5 class="mt-4">{{ "Section 6"|t:current_lang }}</h5>
+            <p>{{ "Region A Total"|t:current_lang }}: ${data.s6_a_total || 0}</p>
+
+            <h5 class="mt-4">{{ "Section 7"|t:current_lang }}</h5>
+            <p>{{ "Notings in Hindi"|t:current_lang }}: ${data.s7_hindi || 0}</p>
+
+            <h5 class="mt-4">{{ "Section 8"|t:current_lang }}</h5>
+            <p>{{ "Workshops"|t:current_lang }}: ${data.s8_workshops || 0}</p>
+
+            <h5 class="mt-4">{{ "Section 9"|t:current_lang }}</h5>
+            <p>{{ "Meeting Date"|t:current_lang }}: ${data.s9_date || '-'}</p>
+
+            <h5 class="mt-4">{{ "Section 10"|t:current_lang }}</h5>
+            <p>{{ "Advisory Meeting Date"|t:current_lang }}: ${data.s10_date || '-'}</p>
+
+            <h5 class="mt-4">{{ "Achievements"|t:current_lang }}</h5>
+            <p>${data.s12_1 || '-'}</p>
+            <p>${data.s12_2 || '-'}</p>
+            <p>${data.s12_3 || '-'}</p>
+        `;
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById("reportContainer").innerHTML =
+                "<div class='text-danger text-center'>{{ 'Error loading report'|t:current_lang }}</div>";
+        }
+    }
+
+    window.addEventListener("DOMContentLoaded", loadReport);
+</script>
+{% endblock %}

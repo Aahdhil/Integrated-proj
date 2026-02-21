@@ -100,7 +100,7 @@ class CustomUserCreationForm(UserCreationForm):
 
 class CustomLoginForm(AuthenticationForm):
     role = forms.ChoiceField(
-        choices=[('user', 'User'), ('hod', 'Manager'), ('admin', 'Admin'),('backup_user','Backup User')],
+        choices=[('user', 'User'), ('manager', 'Manager'), ('hod', 'HOD'), ('admin', 'Admin'),('backup_user','Backup User')],
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     captcha = CaptchaField()
@@ -130,7 +130,8 @@ class CustomLoginForm(AuthenticationForm):
         
         self.fields['role'].choices = [
             ('user', translate_text("User", self.lang)),
-            ('hod', translate_text("Manager", self.lang)),
+            ('manager', translate_text("Manager", self.lang)),
+            ('hod', translate_text("HOD", self.lang)),
             ('admin', translate_text("Admin", self.lang)),
             ('backup_user', translate_text("Backup User", self.lang)),
         ]

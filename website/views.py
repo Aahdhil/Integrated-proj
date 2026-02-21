@@ -254,6 +254,7 @@ def error_500(request): return universal_error_view(request, None, 500)
 
 @login_required
 def dashboard(request):
+    """Central Dashboard Router - Routes each role to their dedicated dashboard"""
     user = request.user
     role = request.session.get('active_role', user.role)
     
@@ -262,19 +263,23 @@ def dashboard(request):
         'role': role
     }
 
-    # 1. ADMIN VIEW - Redirect to dedicated admin dashboard
+    # 1. ADMIN - System administration, HOD management, archive/unarchive, typing reports
     if role == 'admin':
         return redirect('qpr_admin_dashboard')
 
-    # 2. HOD VIEW - Redirect to dedicated HOD dashboard
+    # 2. MANAGER - Edit request approvals, employee records management, designations
+    elif role == 'manager':
+        return redirect('manager_dashboard')
+    
+    # 3. HOD - Department oversight, employee statistics, detail list
     elif role == 'hod':
         return redirect('qpr_hod_dashboard')
         
-    # 3. BACKUP USER VIEW
+    # 4. BACKUP USER - Database download and backup management
     elif role == 'backup_user':
         return render(request, 'dashboard.html', context)
 
-    # 4. STANDARD USER - Redirect to user dashboard for proper data refresh
+    # 5. USER (Default) - Profile management, QPR forms, employee forms
     else:
         return redirect('qpr_user_dashboard')
 
@@ -853,8 +858,9 @@ def user_dashboard(request):
     response['Expires'] = '0'
     return response 
 @login_required
+@login_required
 def qpr_hod_dashboard(request):
-    """HOD Dashboard View - Unified"""
+    """HOD Dashboard - Department overview and employee statistics"""
     if request.user.profile.role != 'hod': return redirect('/')
     lang = request.session.get('lang', 'en')
     hod_name = request.user.profile.hod_name
@@ -884,7 +890,8 @@ def qpr_hod_dashboard(request):
 
 @login_required
 def manager_dashboard(request):
-    if not (request.user.role in ['hod', 'admin'] or request.user.is_superuser):
+    """Manager Dashboard - Manage system access and employee records"""
+    if not (request.user.role in ['manager', 'admin'] or request.user.is_superuser):
         return redirect('/')
     
     users = CustomUser.objects.all().order_by('-date_joined')
@@ -1017,6 +1024,13 @@ def manage_user_action(request, user_id, action):
 @login_required
 def admin_dashboard(request):
     if request.user.profile.role != 'admin': return redirect('/')
+    
+    # --- ACTIVE USERS ---
+    users = CustomUser.objects.filter(is_active=True, is_archived=False).order_by('-date_joined')
+    
+    # --- ARCHIVED USERS ---
+    archived_users = ArchivedUser.objects.all().order_by('-archived_at')
+    
     hod_stats = []
     hods = UserProfile.objects.filter(role='hod').order_by('name')
     for hod_profile in hods:
@@ -1051,7 +1065,12 @@ def admin_dashboard(request):
         })
     # 3. Pending Requests
     pending_requests = ManagerRequest.objects.filter(status='pending', hod__profile__role='user')
-    context = {'hod_stats': hod_stats, 'manager_requests': pending_requests}
+    context = {
+        'hod_stats': hod_stats, 
+        'manager_requests': pending_requests,
+        'users': users,
+        'archived_users': archived_users
+    }
     response = render(request, 'dashboard.html', context) # Renders UNIFIED DASHBOARD
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response['Pragma'] = 'no-cache'
@@ -1610,9 +1629,10 @@ def request_qpr_edit(request, record_id):
 
 
 @login_required
-@user_passes_test(is_admin)
 def admin_edit_requests(request):
     """Admin view all pending edit requests"""
+    if request.user.role != 'admin':
+        return redirect('/')
     lang = request.session.get('lang', 'en')
     
     status_filter = request.GET.get('status', 'pending')
@@ -1638,9 +1658,10 @@ def admin_edit_requests(request):
 
 
 @login_required
-@user_passes_test(is_admin)
 def approve_edit_request(request, request_id):
-    """Admin approves an edit request"""
+    """Manager/Admin approves an edit request"""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('/')
     lang = request.session.get('lang', 'en')
     
     try:
@@ -1671,19 +1692,26 @@ def approve_edit_request(request, request_id):
             )
             
             messages.success(request, translate_text("Edit request approved.", lang))
-            return redirect('admin_edit_requests')
+            if request.user.role == 'manager':
+                return redirect('manager_dashboard')
+            else:
+                return redirect('qpr_admin_dashboard')
         except Exception as e:
             messages.error(request, translate_text(f"Error approving request: {str(e)}", lang))
-            return redirect('admin_edit_requests')
+            if request.user.role == 'manager':
+                return redirect('manager_dashboard')
+            else:
+                return redirect('qpr_admin_dashboard')
     
     context = {'edit_request': edit_request, 'current_lang': lang}
     return render(request, 'qpr/approve_edit_request.html', context)
 
 
 @login_required
-@user_passes_test(is_admin)
 def reject_edit_request(request, request_id):
-    """Admin rejects an edit request"""
+    """Manager/Admin rejects an edit request"""
+    if request.user.role not in ['manager', 'admin']:
+        return redirect('/')
     lang = request.session.get('lang', 'en')
     
     try:
@@ -1716,10 +1744,16 @@ def reject_edit_request(request, request_id):
             )
             
             messages.success(request, translate_text("Edit request rejected.", lang))
-            return redirect('admin_edit_requests')
+            if request.user.role == 'manager':
+                return redirect('manager_dashboard')
+            else:
+                return redirect('qpr_admin_dashboard')
         except Exception as e:
             messages.error(request, translate_text(f"Error rejecting request: {str(e)}", lang))
-            return redirect('admin_edit_requests')
+            if request.user.role == 'manager':
+                return redirect('manager_dashboard')
+            else:
+                return redirect('qpr_admin_dashboard')
     
     context = {'edit_request': edit_request, 'current_lang': lang}
     return render(request, 'qpr/reject_edit_request.html', context)

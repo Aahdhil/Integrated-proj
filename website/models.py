@@ -29,7 +29,8 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractUser):
     ROLE_CHOICES = [
         ('user', 'User'),
-        ('hod', 'Manager'),
+        ('manager', 'Manager'),
+        ('hod', 'HOD'),
         ('admin', 'Admin'),
         ('backup_user', 'Backup User'),
     ]
@@ -166,13 +167,15 @@ class UserProfile(models.Model):
     """Extended user profile for storing additional information"""
     ROLE_CHOICES = [
         ('user', 'User'),
+        ('manager', 'Manager'),
         ('hod', 'HOD'),
-        ('admin', 'Admin/Manager'),
+        ('admin', 'Admin'),
+        ('backup_user', 'Backup User'),
     ]
     
     user = models.OneToOneField(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name='profile')
     employee_code = models.CharField(max_length=50, unique=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     hod_name = models.CharField(max_length=50, null=True, blank=True)
     name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
